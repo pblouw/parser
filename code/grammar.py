@@ -55,32 +55,26 @@ class Language(object):
     def build_trees(self, n):
         """Add n new randomly generated trees to the language"""
         if n == 0:
-            return
+            pass
         else:
             new_tree = Tree(self.rules, self.vocab)
 
-            # Add bindings not already cached to the language
-            for binding in new_tree.bindings:
-                if binding.label not in self.binding_cache:
-                    self.bindings[binding.label] = [binding]
-                else:
-                    temp = self.bindings.copy()
-                    for key in temp.keys():                            
-                        for item in temp[key]:
-                            if binding.label == item.label:
-                                old = [c.label for c in binding.children]
-                                new = [c.label for c in item.children]   
-                                if new == old:
-                                    pass
-                                else:
-                                    self.bindings[key].append(binding)
-
-                self.binding_cache.append(binding.label)
-            
-            # Check the tree cache for tree duplication and recurse.
+            # Check the tree cache for tree duplication
             if new_tree.label not in self.tree_cache:
                 self.trees.append(new_tree)
                 self.tree_cache.append(new_tree.label)
+
+                # Add a unique identifier to each binding for caching purposes
+                for b in new_tree.bindings:
+                    b.id = b.label + ' -> (' 
+                    b.id = b.id + ' '.join([c.label for c in b.children]) +')'
+
+                    if b.id not in self.binding_cache: 
+                        self.bindings[b.label] = self.bindings.get(b.label,[])
+                        self.bindings[b.label].append(b)
+                        self.binding_cache.append(b.id)
+                
+                # Recursive call
                 self.build_trees(n-1)
             else:
                 self.build_trees(n)
@@ -123,8 +117,8 @@ class Language(object):
 
     def build_constraints(self):
         """Generate constraints for each binding in the language"""
-        for tree in self.trees:
-            for binding in tree.bindings:
+        for lst in self.bindings.values():
+            for binding in lst:
                 binding.get_constraints()
 
 
@@ -170,17 +164,9 @@ class Tree(object):
     def extend(self, binding):
         """Grow a tree from a binding that acts as the tree's root"""
         if binding.filler in self.rules:
-            if len(binding.role) >= 4:
-                return
-            elif len(binding.role) >= 3:    
-                if len(self.rules[binding.filler]) > 1:
-                    subfillers = self.rules[binding.filler][1]
-                else:
-                    subfillers = self.rules[binding.filler][0]
-            else:
-                subfillers = random.choice(self.rules[binding.filler])   
-            
+
             num_dict = {1:('m'), 2:('l','r'), 3:('l','m','r')}
+            subfillers = random.choice(self.rules[binding.filler])   
             subroles = [binding.role+x for x in num_dict[len(subfillers)]]
 
             for i in xrange(len(subroles)):
@@ -190,18 +176,6 @@ class Tree(object):
                 binding.children.append(new)
                 self.bindings.append(new)
                 self.extend(new)
-
-
-    def remove(self, binding_label):
-        """Delete a binding from the tree. This will eliminate the binding as
-        a possible parent or child to all other bindings in the tree."""
-        for binding in self.bindings:
-            for child in binding.children:
-                if child.label == binding_label:
-                    binding.children.remove(child)
-
-        self.bindings.remove(self[binding_label]) 
-        return self
 
     def display(self):
         """Get the terminal symbols of the tree in correct order"""
