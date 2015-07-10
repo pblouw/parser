@@ -1,4 +1,5 @@
 import random
+import sys
 import numpy as np
 from vsa import *
 from helpers import *
@@ -25,20 +26,23 @@ class Language(object):
             # Run only those networks applicable to the tree
             if binding.label in self.networks:
                 nets = self.networks[binding.label]
-                network = None
 
-                # Choose best network if option available
+                # Choose right network if option available
                 # This is not robust - fix asap
                 if len(nets) < 2:
                     network = nets[0]
                 else:
                     for net in nets:
-                        voc = set(net.vocab)
-                        if voc < set(tree_vocab) and len(voc) > 1:
+                        # Check net vocab against binding labels
+                        n_voc = set(net.vocab)
+                        b_voc = set([c.label for c in binding.children])
+                        b_voc.add(binding.label)
+
+                        if n_voc == b_voc:
                             network = net
-                        else:
-                            pass
-                    if network == None:
+                            break
+                    else:
+                        print 'Warning - random choice for '+binding.label
                         network = random.choice(nets)
 
                 # Initiliaze network state from tree bindings
@@ -54,9 +58,10 @@ class Language(object):
 
     def build_trees(self, n):
         """Add n new randomly generated trees to the language"""
-        if n == 0:
-            pass
-        else:
+        # if n == 0:
+        #     pass
+        # else:
+        while n > 0:
             new_tree = Tree(self.rules, self.vocab)
 
             # Check the tree cache for tree duplication
@@ -73,39 +78,38 @@ class Language(object):
                         self.bindings[b.label] = self.bindings.get(b.label,[])
                         self.bindings[b.label].append(b)
                         self.binding_cache.append(b.id)
-                
-                # Recursive call
-                self.build_trees(n-1)
-            else:
-                self.build_trees(n)
+
+                n -= 1
+                print n
+
+            #     self.build_trees(n-1)
+            # else:
+            #     self.build_trees(n)
 
     def build_networks(self):
         """Add required networks to compute the language's constraints"""
-        for lst in self.bindings.values():
-            for b in lst:
-                vocab = [b.label] + [c.label for c in b.children]
+        for bs in self.bindings.values():
+            for b in bs:
+                vocab = [b.label] + [c.label for c in b.children]                
 
                 # Only add a network for local trees that include children
                 if len(b.children) > 0:
-                    constraints = b.constraints.keys()
                     weights = sum([b.constraints[x] for x in b.constraints])
-                    damping = -2 * len(b.children)
-                    bias = self.vocab['BIAS'].v
+                    bval = -2 * len(b.children)
 
                     # Define the network
-                    net = Hopfield(b.label, bias)
+                    net = Hopfield(b.label)
                     net.vocab = vocab
                     net.weights = weights
-                    net.constraints = constraints
 
                     # Define the input to the cleanup memory
                     c_vecs = [child.v for child in b.children]
                     pi_vecs = [b.v / float(x+1) for x in range(len(c_vecs))] 
-                    in_vecs = pi_vecs + c_vecs + [bias]
+                    in_vecs = pi_vecs + c_vecs + [self.vocab['BIAS'].v]
 
                     # Define the output of the cleanup memory
                     po_vecs = [b.v for x in range(len(c_vecs))] 
-                    out_vecs = po_vecs + c_vecs + [bias*damping]
+                    out_vecs = po_vecs + c_vecs + [self.vocab['BIAS'].v*bval]
 
                     net.clean_in = np.row_stack(in_vecs)
                     net.clean_out = np.column_stack(out_vecs)
@@ -154,6 +158,14 @@ class Tree(object):
             if binding.label == key:
                 return binding
         raise KeyError('Tree does not contain the provided binding')
+
+    def remove(self, label):
+        for b in self.bindings:
+            for child in b.children[:]:
+                if child.label == label:
+                    b.children.remove(child)
+            if label == b.label:
+                self.bindings.remove(b)
 
     def build(self, rules, root_binding):
         """Build a tree using a provided set of grammatical rules"""
