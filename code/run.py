@@ -13,20 +13,26 @@ sys.setrecursionlimit(10000)
 
 rules = {'S':[['NP','VP']],
          'NP':[['DET','N'],['DET','ADJ','N']],
-         'ADJ':[['angry']],
          'VP':[['V'],['V','NP']],
          'V':[['ate'],['chased'],['wanted'],['followed']],
-         'DET':[['a'],['the'],['my'],['some']],
-         'N':[['apple'],['cowboy'],['musketeer'],['castle'],['squirrel'],['wizard'],['astronaut']]}
+         'ADJ':[['sullen'],['wild']],
+         'DET':[['a'],['the']], #['my'],['some']],
+         'N':[['wizard'],['cowboy']]}#,['musketeer'],['castle'],['squirrel'],['wizard'],['astronaut']]}
          
 dims = [128, 256, 512]
-N = 25
+N = 100
 
-tally_1 = np.zeros((N,14))
-tally_2 = np.zeros((N,16))
+tally_1 = np.zeros((N,16))
+tally_2 = np.zeros((N,14))
 
 for dim in dims:
+
+    lang = Language(rules)
+    lang.build_trees(624)
+
     for i in range(N):
+        lang.networks = {}
+
         vocab = Vocabulary(dimensions=dim, unitary=True)
 
         for item in get_fillers(rules):
@@ -35,43 +41,52 @@ for dim in dims:
             vocab.add(item)
         vocab.add('BIAS')
 
-        set_1 = ['S','l*NP','r*VP','ll*DET','lr*N','rl*V','rr*NP','rrl*DET',
-                 'rrr*N','rrrm*squirrel','rrlm*a','lrm*castle','llm*the','rlm*ate']
+        # set_1 = ['S','l*NP','r*VP','ll*DET','lr*N','rm*V',
+        #         'llm*the','lrm*castle','rmm*ate']
 
-        set_2 = ['S','l*NP','r*VP','ll*DET','lr*N','rl*V','rr*NP','rrl*DET',
-                 'rrm*ADJ','rrr*N','lrm*cowboy','llm*a','rmm*chased',
-                 'rrlm*the','rrmm*angry','rrrm*wizard']
+        
+
+        set_1 = ['S','l*NP','r*VP','ll*DET','lr*N','lm*ADJ', 'rl*V','rr*NP','rrl*DET','rrr*N',
+                 'llm*the','lmm*sullen','lrm*cowboy','rlm*chased','rrlm*a','rrrm*wizard']
+
+        set_2 = ['S','l*NP','r*VP','ll*DET','lr*N','rl*V','rr*NP','rrl*DET','rrr*N',
+                 'llm*a','lrm*cowboy','rlm*chased','rrlm*the','rrrm*wizard']
 
         set_1 = set_1[::-1]
         set_2 = set_2[::-1]
 
+        for binding_set in lang.bindings.values():
+            for b in binding_set:
+                b.get_vectors(vocab)
 
-        lang = Language(rules, vocab)
-        lang.build_trees(12700)
+        for tree in lang.trees:
+            for b in tree.bindings:
+                b.get_vectors(vocab)
+
         lang.build_constraints()
-        lang.build_networks()
+        lang.build_networks(vocab)
 
         tree1 = None
         tree2 = None
 
         for tree in lang.trees:
-            if tree.display() == ['the', 'castle','ate','a','squirrel']:
+            if tree.display() == ['the','sullen','cowboy','chased','a','wizard']:
                 tree1 = tree
-            if tree.display() == ['a','cowboy','chased','the','angry','wizard']:
+            if tree.display() == ['a','cowboy','chased','the','wizard']:
                 tree2 = tree
 
-        for j in range(14):
+        for j in range(16):
             subset = set_1[:j]
             print subset   
             test = copy.deepcopy(tree1)
             
             for binding in subset:
                 test.remove(binding)
-
+            print
             score = lang.evaluate(test)
             tally_1[i,j] = score
 
-        for j in range(16):  
+        for j in range(14):  
             subset = set_2[:j]
             test = copy.deepcopy(tree2)
         

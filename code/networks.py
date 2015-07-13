@@ -10,16 +10,24 @@ class Hopfield(object):
     state. Right now, the network simply acts to evaluate the optimality of 
     some state relative to some set of constraints.   
     """
-    def __init__(self, label):
-        self.label = label
+    def __init__(self):
         self.weights = None 
         self.clean_in = None
         self.clean_out = None
-        self.vocab = []
+        self.bindings = []
 
     def threshold(self, x, size):
         """"Non-linearity for implementing the network's cleanup memory"""
-        if size == 3:
+        if size >= 4:
+            if x[1] > 0.7:
+                x[1] = 1
+            else: 
+                x[1] = 0
+            if x[2] > 0.35:
+                x[2] = 1
+            else:
+                x[2] = 0
+        elif size >= 3:
             if x[1] > 0.35:
                 x[1] = 1
             else: 
@@ -34,7 +42,7 @@ class Hopfield(object):
         # print self.label 
         Wa = np.dot(self.weights, self.state)
         # print 'Raw values: ', np.dot(self.clean_in, Wa)
-        C = self.threshold(np.dot(self.clean_in, Wa), len(self.vocab))
+        C = self.threshold(np.dot(self.clean_in, Wa), len(self.bindings))
         # print 'Thresholding: ', C
         CWa = np.dot(self.clean_out, C)
         aCWa = np.dot(np.transpose(self.state), normalize(CWa))

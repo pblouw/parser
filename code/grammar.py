@@ -8,9 +8,9 @@ from networks import *
 class Language(object):
     """A language, or set of strings, defined by a formal grammar.
     """
-    def __init__(self, rules, vocab):
+    def __init__(self, rules):
         self.rules = rules
-        self.vocab = vocab
+        # self.vocab = vocab
         self.networks = {}
         self.trees = []
         self.tree_cache = []
@@ -19,22 +19,19 @@ class Language(object):
 
     def evaluate(self, tree):
         """Evaluate the wellformedness of a linguistic structure"""
-        tree_vocab = [b.label for b in tree.bindings]
         score = 0
-
         for binding in tree.bindings:
             # Run only those networks applicable to the tree
-            if binding.label in self.networks:
+            if binding.label in self.networks.keys():
                 nets = self.networks[binding.label]
 
                 # Choose right network if option available
-                # This is not robust - fix asap
                 if len(nets) < 2:
                     network = nets[0]
                 else:
                     for net in nets:
                         # Check net vocab against binding labels
-                        n_voc = set(net.vocab)
+                        n_voc = set(net.bindings)
                         b_voc = set([c.label for c in binding.children])
                         b_voc.add(binding.label)
 
@@ -47,7 +44,7 @@ class Language(object):
 
                 # Initiliaze network state from tree bindings
                 state_accumulator = [b.v for b in tree.bindings 
-                                     if b.label in network.vocab]
+                                     if b.label in network.bindings]
                 
                 state = sum(state_accumulator) + self.vocab['BIAS'].v
                 network.state = normalize(state)
@@ -58,11 +55,8 @@ class Language(object):
 
     def build_trees(self, n):
         """Add n new randomly generated trees to the language"""
-        # if n == 0:
-        #     pass
-        # else:
         while n > 0:
-            new_tree = Tree(self.rules, self.vocab)
+            new_tree = Tree(self.rules)
 
             # Check the tree cache for tree duplication
             if new_tree.label not in self.tree_cache:
@@ -78,19 +72,16 @@ class Language(object):
                         self.bindings[b.label] = self.bindings.get(b.label,[])
                         self.bindings[b.label].append(b)
                         self.binding_cache.append(b.id)
-
                 n -= 1
                 print n
 
-            #     self.build_trees(n-1)
-            # else:
-            #     self.build_trees(n)
+    def build_networks(self, vocab):
+        self.vocab = vocab
 
-    def build_networks(self):
         """Add required networks to compute the language's constraints"""
-        for bs in self.bindings.values():
-            for b in bs:
-                vocab = [b.label] + [c.label for c in b.children]                
+        for binding_set in self.bindings.values():
+            for b in binding_set:
+                binding_voc = [b.label] + [c.label for c in b.children]                
 
                 # Only add a network for local trees that include children
                 if len(b.children) > 0:
@@ -98,8 +89,8 @@ class Language(object):
                     bval = -2 * len(b.children)
 
                     # Define the network
-                    net = Hopfield(b.label)
-                    net.vocab = vocab
+                    net = Hopfield()
+                    net.bindings = binding_voc
                     net.weights = weights
 
                     # Define the input to the cleanup memory
@@ -121,9 +112,9 @@ class Language(object):
 
     def build_constraints(self):
         """Generate constraints for each binding in the language"""
-        for lst in self.bindings.values():
-            for binding in lst:
-                binding.get_constraints()
+        for binding_set in self.bindings.values():
+            for b in binding_set:
+                b.get_constraints()
 
 
 class Tree(object):
@@ -143,14 +134,14 @@ class Tree(object):
     empty : bool, optional
         If true, initiliaze an empty tree that can be built manually.
     """
-    def __init__(self, rules, vocab, empty=False):
+    def __init__(self, rules, empty=False):
         self.bindings = []
-        self.vocab = vocab
+        # self.vocab = vocab
         self.rules = rules
         if empty:
             pass
         else:
-            self.build(rules, root_binding=Binding('', 'S', vocab))
+            self.build(rules, root_binding=Binding('', 'S'))
 
     def __getitem__(self, key):
         """Return the binding with the requested label"""
@@ -184,7 +175,7 @@ class Tree(object):
             for i in xrange(len(subroles)):
                 role = subroles[i]
                 filler = subfillers[i]
-                new = Binding(role, filler, self.vocab)
+                new = Binding(role, filler)
                 binding.children.append(new)
                 self.bindings.append(new)
                 self.extend(new)
@@ -215,15 +206,14 @@ class Binding(object):
         A symbol occupying a particular node in a tree. Symbols can correspond
         to syntactic categories (e.g. NP) or to words (e.g. "many").
     """
-    def __init__(self, role, filler, vocab):
+    def __init__(self, role, filler):
         self.label = label(role, filler)
         self.role = role
         self.filler = filler
-        self.vocab = vocab
         self.children = []
         self.constraints = {}
         
-        self.v = convolve(self.role_to_vec(role), self.vocab[filler].v)
+        # self.v = convolve(self.role_to_vec(role), self.vocab[filler].v)
 
     def role_to_vec(self, role):
         """Build a vector encoding for a role used in tree bindings"""
@@ -231,6 +221,12 @@ class Binding(object):
             return HRR.identity(self.vocab.dimensions)
         else:
             return self.vocab[role].v
+
+    def get_vectors(self, vocab):
+        self.vocab = vocab
+        self.v = convolve(self.role_to_vec(self.role), self.vocab[self.filler].v)
+        for c in self.children:
+            c.v = convolve(self.role_to_vec(c.role), self.vocab[c.filler].v)
 
     def get_constraints(self):
         """Adds a set of constraints to the binding in the form of a
