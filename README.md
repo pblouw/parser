@@ -3,7 +3,7 @@ This repository contains code for running the simulations described in the Proce
 Dependencies
 ------------
 
-The simulations requires Numpy, a library for scientific computing in python, while generating the plots requires matplotlib. The easist way to get these packages is to install [Anaconda](https://store.continuum.io/cshop/anaconda/), a free python distribution that includes everything you need. Simply install Anaconda and then ensure that it is your default python installation (or, create an environment with each dependency and activate this environment from the command line before you proceed)
+The simulations require Numpy, a library for scientific computing in python. Generating the plots requires matplotlib, a plotting library. The easist way to get these packages is to install [Anaconda](https://store.continuum.io/cshop/anaconda/), a free python distribution that includes everything you need. Simply install Anaconda and then ensure that it is your default python installation (or, create an environment with each dependency and activate this environment from the command line before you proceed)
 
 Running Simulations
 -------------------

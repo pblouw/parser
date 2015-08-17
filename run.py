@@ -72,10 +72,10 @@ for dim in dims:
     data_1 = -1*np.mean(tally_1, axis=0)
     error_1 = 1.96*np.std(tally_1, axis=0)
 
-    np.save('Tree1-Data-'+str(dim), data_1)
-    np.save('Tree1-Error-'+str(dim), error_1)
+    np.save('results/Tree1-Data-'+str(dim), data_1)
+    np.save('results/Tree1-Error-'+str(dim), error_1)
 
     data_2 = -1*np.mean(tally_2, axis=0)
     error_2 = 1.96*np.std(tally_2, axis=0)
-    np.save('Tree2-Data-'+str(dim), data_2)
-    np.save('Tree2-Error-'+str(dim), error_2)
+    np.save('results/Tree2-Data-'+str(dim), data_2)
+    np.save('results/Tree2-Error-'+str(dim), error_2)
