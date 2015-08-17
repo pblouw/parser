@@ -44,7 +44,6 @@ def convolve(a, b):
 
 def get_convolution_matrix(vec):
     """Return the matrix that does a circular convolution by this vector.
-
     This should be such that A*B == dot(A.get_convolution_matrix, B.v)
     """
     D = len(vec)
