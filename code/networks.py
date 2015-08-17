@@ -18,20 +18,20 @@ class Hopfield(object):
 
     def threshold(self, x, size):
         """"Non-linearity for implementing the network's cleanup memory"""
-        if size >= 4:
-            if x[1] > 0.7:
-                x[1] = 1
-            else: 
-                x[1] = 0
-            if x[2] > 0.35:
-                x[2] = 1
-            else:
-                x[2] = 0
-        elif size >= 3:
-            if x[1] > 0.35:
-                x[1] = 1
-            else: 
-                x[1] = 0
+        # if size >= 4:
+        #     if x[1] > 0.7:
+        #         x[1] = 1
+        #     else: 
+        #         x[1] = 0
+        #     if x[2] > 0.35:
+        #         x[2] = 1
+        #     else:
+        #         x[2] = 0
+        # elif size >= 3:
+        #     if x[1] > 0.35:
+        #         x[1] = 1
+        #     else: 
+        #         x[1] = 0
         x[x > 0.2] = 1
         x[x <= 0.2] = 0
         return x
