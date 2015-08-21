@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from helpers import *
 
@@ -52,3 +53,36 @@ class Hopfield(object):
     def update(self):
         """Todo - currently no implementation of energy minimization"""
         pass
+
+def energy_surface(lang, bindings, vocab, tree_set):
+    """
+    Evaluate the surface of the energy landscape
+    """
+    lang.networks = {}
+    test_tree = None
+    surface = np.zeros(len(bindings))
+
+    for bs in lang.bindings.values():
+        for b in bs:
+            b.get_vectors(vocab)
+
+    for tree in lang.trees:
+        for b in tree.bindings:
+            b.get_vectors(vocab)
+
+    lang.build_constraints()
+    lang.build_networks(vocab)
+
+    for tree in lang.trees:
+        if set(tree_set) == tree.binding_set():
+            test_tree = tree
+
+    for i in range(len(bindings)):
+        subset = bindings[i]
+        
+        struct = copy.deepcopy(test_tree)
+        
+        for binding in subset:
+            struct.remove(binding)
+        surface[i] = lang.evaluate(struct)
+    return surface

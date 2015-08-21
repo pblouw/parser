@@ -14,11 +14,10 @@ rules = {'S':[['NP','VP']],
          'VP':[['V']],
          'V':[['ran'],['ate'],['lied'],['stole']]}
 
-dims = [512]
+dim = 512
 N = 100
 
-tally_1 = np.zeros((N,9))
-
+tally = np.zeros((N,9))
 
 tree_set = ['S','l*NP','r*VP','rm*V','lm*john','rmm*ran']
 
@@ -32,61 +31,22 @@ removals = [['S','lm*john','rm*V'],
             ['S','l*NP','r*VP','rmm*ran'],
             ['l*NP','rm*V','r*VP']] 
 
-def energy_surface(lang, bindings, vocab):
-    lang.networks = {}
-    test_tree = None
-    surface = np.zeros(len(bindings))
 
-    for bs in lang.bindings.values():
-        for b in bs:
-            b.get_vectors(vocab)
+lang = Language(rules)
+lang.build_trees(16)
 
-    for tree in lang.trees:
-        for b in tree.bindings:
-            b.get_vectors(vocab)
+for i in range(N):
+    vocab = Vocabulary(dimensions=dim, unitary=True)
+    vocab.add('BIAS')
 
-    lang.build_constraints()
-    lang.build_networks(vocab)
+    for item in get_fillers(rules):
+        vocab.add(item)   
+    for item in get_roles('', depth=4):
+        vocab.add(item)
+    
+    tally[i,:] = energy_surface(lang, removals, vocab, tree_set)
 
-    for tree in lang.trees:
-        if set(tree_set) == tree.binding_set():
-            test_tree = tree
-
-    for i in range(len(bindings)):
-        subset = bindings[i]
-        
-        struct = copy.deepcopy(test_tree)
-        
-        for binding in subset:
-            struct.remove(binding)
-        surface[i] = lang.evaluate(struct)
-        print 'Subset is: ', subset, 'Energy = ', surface[i]
-    print ''
-    return surface
-
-
-for dim in dims:
-    lang = Language(rules)
-    lang.build_trees(16)
-
-    for i in range(N):
-        lang.networks = {}
-
-        vocab = Vocabulary(dimensions=dim, unitary=True)
-        for item in get_fillers(rules):
-            vocab.add(item)   
-        for item in get_roles('', depth=4):
-            vocab.add(item)
-        vocab.add('BIAS')
-
-        tally_1[i,:] = energy_surface(lang, removals, vocab)
-
-    data_1 = -1*np.mean(tally_1, axis=0)
-    error_1 = 1.96*np.std(tally_1, axis=0)
-    np.save('Tree1-Data-'+str(dim), data_1)
-    np.save('Tree1-Error-'+str(dim), error_1)
-
-    # data_2 = -1*np.mean(tally_2, axis=0)
-    # error_2 = 1.96*np.std(tally_2, axis=0)
-    # np.save('Tree2-Data-'+str(dim), data_2)
-    # np.save('Tree2-Error-'+str(dim), error_2)
+data = -1*np.mean(tally, axis=0)
+error = 1.96*np.std(tally, axis=0)
+np.save('SimpleTree-Data-'+str(dim), data)
+np.save('SimpleTree-Error-'+str(dim), error)

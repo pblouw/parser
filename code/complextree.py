@@ -17,17 +17,13 @@ rules = {'S':[['NP','VP']],
          'N':[['hamburger'],['dollar'],['thief'],['astronaut']]}
 
 
-dims = [512]
+dim = 512
 N = 100
 
-tally_1 = np.zeros((N,9))
+tally = np.zeros((N,9))
 
-tree_set1 = ['S','l*NP','r*VP','rm*V','ll*DET','lr*N',
+tree_set = ['S','l*NP','r*VP','rm*V','ll*DET','lr*N',
              'llm*the','lrm*thief','rmm*stole']
-
-tree_set2 = ['S','l*NP','r*VP','rl*V','rr*NP','ll*DET','lr*N','rrl*DET','rrr*N',
-             'llm*the','lrm*thief','rlm*stole','rrlm*a','rrrm*dollar']
-
 
 removals = [['S','llm*the','lrm*thief','rm*V'],
             ['rm*V','llm*the','rmm*stole','l*NP'],
@@ -39,54 +35,21 @@ removals = [['S','llm*the','lrm*thief','rm*V'],
             ['rm*V','llm*the','rmm*stole','l*NP'],
             ['l*NP','rm*V','r*VP','ll*DET','lr*N']]
 
+lang = Language(rules)
+lang.build_trees(624)
 
-def energy_surface(lang, bindings, vocab):
-    lang.networks = {}
-    test_tree = None
-    surface = np.zeros(len(bindings))
+for i in range(N):
+    vocab = Vocabulary(dimensions=dim, unitary=True)
+    vocab.add('BIAS')
 
-    for bs in lang.bindings.values():
-        for b in bs:
-            b.get_vectors(vocab)
+    for item in get_fillers(rules):
+        vocab.add(item)   
+    for item in get_roles('', depth=4):
+        vocab.add(item)
+    
+    tally[i,:] = energy_surface(lang, removals, vocab, tree_set)
 
-    for tree in lang.trees:
-        for b in tree.bindings:
-            b.get_vectors(vocab)
-
-    lang.build_constraints()
-    lang.build_networks(vocab)
-
-    for i in range(len(bindings)):
-        
-        for tree in lang.trees:
-            if set(tree_set1) == tree.binding_set():
-                test_tree = tree
-
-        subset = bindings[i]
-        struct = copy.deepcopy(test_tree)
-        
-        for binding in subset:
-            struct.remove(binding)
-        surface[i] = lang.evaluate(struct)
-    return surface
-
-for dim in dims:
-    lang = Language(rules)
-    lang.build_trees(624)
-
-    for i in range(N):
-        lang.networks = {}
-
-        vocab = Vocabulary(dimensions=dim, unitary=True)
-        for item in get_fillers(rules):
-            vocab.add(item)   
-        for item in get_roles('', depth=4):
-            vocab.add(item)
-        vocab.add('BIAS')
-
-        tally_1[i,:] = energy_surface(lang, removals, vocab)
-
-    data_1 = -1*np.mean(tally_1, axis=0)
-    error_1 = 1.96*np.std(tally_1, axis=0)
-    np.save('Tree1-Data-'+str(dim), data_1)
-    np.save('Tree1-Error-'+str(dim), error_1)
+data = -1*np.mean(tally, axis=0)
+error = 1.96*np.std(tally, axis=0)
+np.save('ComplexTree-Data-'+str(dim), data)
+np.save('ComplexTree-Error-'+str(dim), error)

@@ -17,17 +17,16 @@ rules = {'S':[['NP','VP']],
          'N':[['hamburger'],['dollar'],['thief'],['astronaut']]}
 
 
-dims = [512]
+dims = 512
 N = 100
 
-tally_2 = np.zeros((N,14))
+tally = np.zeros((N,14))
 
 tree_set1 = ['S','l*NP','r*VP','rm*V','ll*DET','lr*N',
              'llm*the','lrm*thief','rmm*stole']
 
 tree_set2 = ['S','l*NP','r*VP','rl*V','rr*NP','ll*DET','lr*N','rrl*DET','rrr*N',
              'llm*the','lrm*thief','rlm*stole','rrlm*a','rrrm*dollar']
-
 
 removals = [['S','llm*the','lrm*thief','rm*V'],
             ['rm*V','llm*the','rmm*stole','l*NP'],
@@ -43,7 +42,6 @@ removals = [['S','llm*the','lrm*thief','rm*V'],
             ['rrrm*dollar'],
             ['rrr*N','rr*NP','rrl*DET'],
             ['llm*the','lrm*thief','l*NP','rrl*DET','rl*V']]
-
 
 def energy_surface(lang, bindings, vocab):
     lang.networks = {}

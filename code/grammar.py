@@ -40,7 +40,6 @@ class Language(object):
                             network = net
                             break
                     else:
-                        print 'Warning - random choice for '+binding.label
                         network = random.choice(nets)
 
                 # Initiliaze network state from tree bindings
@@ -100,7 +99,7 @@ class Language(object):
                 bval = -1 * mag
 
                 # Define the network
-                net = Hopfield(b.label)
+                net = Hopfield()
                 net.bindings = binding_voc
                 net.weights = weights
 
@@ -149,7 +148,6 @@ class Tree(object):
     """
     def __init__(self, rules, empty=False):
         self.bindings = []
-        # self.vocab = vocab
         self.rules = rules
         if empty:
             pass
@@ -171,7 +169,6 @@ class Tree(object):
             if label == b.label:
                 self.bindings.remove(b)
             if b.parent != None:
-                # print b.label +' '+b.parent.label   
                 if b.parent.label == label:
                     b.parent = None
 
@@ -205,6 +202,9 @@ class Tree(object):
         bindings.sort(key = lambda x: x.role)
         return [b.filler for b in bindings]
 
+    def binding_set(self):
+        """Get the set of bindings that constitute the tree"""
+        return set([b.label for b in self.bindings])
 
 class Binding(object):
     """
